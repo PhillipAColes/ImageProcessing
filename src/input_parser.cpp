@@ -20,13 +20,3 @@ void InputParser::parse_optional_arg(char* arg)
 {
     std::cout << arg << std::endl;
 } 
-
-std::string InputParser::get_in_file_path()
-{
-    return in_file_path;
-}
-
-std::string InputParser::get_out_file_path()
-{
-    return out_file_path;
-}

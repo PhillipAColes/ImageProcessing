@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#
 
 class BmpImage
 {
@@ -44,27 +45,10 @@ public:
             blue(b), green(g), red(r), alpha(a)
         {};
     };
-    //std::array<Pixel>* pixels = NULL; // Array to hold pixels 
     std::vector<std::vector<Pixel>> pixels;
 
 public:
     BmpImage(std::string bmp_file_path);
-
-    void set_file_type(uint16_t file_type);
-    void set_file_size(uint32_t file_size);
-    void set_offset_data(uint32_t offset_data);
-
-    void set_size(uint32_t size);
-    void set_width(int32_t width);
-    void set_height(int32_t height);
-    void set_planes(uint16_t planes);
-    void set_bit_count(uint16_t bit_count);
-    void set_compression(uint32_t compression);
-    void set_size_image(uint32_t size_image);
-    void set_x_pixels_per_meter(int32_t x_pixels_per_meter);
-    void set_y_pixels_per_meter(int32_t y_pixels_per_meter);
-    void set_colors_used(uint32_t colors_used);
-    void set_colors_important(uint32_t colors_important);
 
     void read_bmp_file_header(std::ifstream& in_stream);
     void read_bmp_info_header(std::ifstream& in_stream);
@@ -77,7 +61,6 @@ public:
     void write_bmp_file(std::string out_file_path);
 
     void write_small_bmp_file(std::string out_file_path);
-    void write_small_bmp_pixels(std::ofstream& out_stream)const;
 
     void print_pixels();
 
