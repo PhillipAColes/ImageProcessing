@@ -3,6 +3,8 @@
 #include <ostream>
 #include <array>
 #include <vector>
+#include <algorithm>
+#include <math.h>
 
 class BmpImage
 {
@@ -49,7 +51,7 @@ public:
     BmpImage(std::string bmp_file_path);
 
     void set_file_type(uint16_t file_type);
-    void set_file_size(uint16_t file_size);
+    void set_file_size(uint32_t file_size);
     void set_offset_data(uint32_t offset_data);
 
     void set_size(uint32_t size);
@@ -59,8 +61,8 @@ public:
     void set_bit_count(uint16_t bit_count);
     void set_compression(uint32_t compression);
     void set_size_image(uint32_t size_image);
-    void set_x_pixels_per_meter(uint32_t x_pixels_per_meter);
-    void set_y_pixels_per_meter(uint32_t y_pixels_per_meter);
+    void set_x_pixels_per_meter(int32_t x_pixels_per_meter);
+    void set_y_pixels_per_meter(int32_t y_pixels_per_meter);
     void set_colors_used(uint32_t colors_used);
     void set_colors_important(uint32_t colors_important);
 
@@ -73,6 +75,17 @@ public:
     void write_bmp_info_header(std::ofstream& out_stream)const;
     void write_bmp_pixels(std::ofstream& out_stream)const;
     void write_bmp_file(std::string out_file_path);
+
+    void write_small_bmp_file(std::string out_file_path);
+    void write_small_bmp_pixels(std::ofstream& out_stream)const;
+
+    void print_pixels();
+
+    void flip_x();
+    void flip_y();
+    void greyscale();
+    void brightness(double factor);
+    void contrast(double factor);
 };
 
 uint8_t read_uint8(std::ifstream& in_stream);
