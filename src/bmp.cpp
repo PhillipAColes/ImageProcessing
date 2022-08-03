@@ -36,7 +36,7 @@ int32_t read_int32(std::ifstream& in_stream)
     return (c3 << 24) | (c2 << 16) | (c1 << 8) | c0; // back to big endian
 }
 
-BmpImage::BmpImage(std::string in_file_path): in_file_path(in_file_path)
+BmpImage::BmpImage(std::string in_file_path_): in_file_path(in_file_path_)
 {
     read_bmp_file();
 }
@@ -44,60 +44,52 @@ BmpImage::BmpImage(std::string in_file_path): in_file_path(in_file_path)
 void BmpImage::read_bmp_file_header(std::ifstream& in_stream)
 {
     _file_type = read_uint16(in_stream);
-    std::cout << "file type = " << std::hex << _file_type << std::endl;
-
+    if(_file_type != 0x4D42)
+    {
+        std::cout << "Error: incorrect file type read from file! Expected 0x4D42, found "
+            << std::hex << _file_type << std::dec << std::endl;
+        in_stream.close();
+        exit(EXIT_FAILURE);
+    }
     _file_size = read_uint32(in_stream);
-    std::cout << "file size = " << std::hex << _file_size << std::endl;
-
-    uint16_t reserved1 = read_uint16(in_stream);
-    std::cout << "reserved1 = " << std::hex << reserved1 << std::endl;
-    uint16_t reserved2 = read_uint16(in_stream);
-    std::cout << "reserved2 = " << std::hex << reserved2 << std::endl;
-
+    _reserved1 = read_uint16(in_stream);
+    _reserved2 = read_uint16(in_stream);
     _offset_data = read_uint32(in_stream);
-    std::cout << "offset_data = " << std::hex << _offset_data << std::endl;
 }
 
 void BmpImage::read_bmp_info_header(std::ifstream& in_stream)
 {
     _size = read_uint32(in_stream);
-    std::cout << "size = " << std::hex << _size << std::endl;
-
     _width = read_int32(in_stream);
-    std::cout << "width = " << _width << std::endl;
-
     _height = read_int32(in_stream);
-    std::cout << "height = " << _height << std::endl;
-
     _planes = read_uint16(in_stream);
-    std::cout << "planes = " << _planes << std::endl;
-
     _bit_count = read_uint16(in_stream);
-    std::cout << "bit_count = " << _bit_count << std::endl;
-
+    if(_bit_count != 32)
+    {
+        std::cout << "Error: incorrect bit count read from file! Expected 32-bit pixels, found "
+            << (unsigned)_bit_count << std::endl;
+        in_stream.close();
+        exit(EXIT_FAILURE);
+    }
     _compression = read_uint32(in_stream);
-    std::cout << "compression = " << _compression << std::endl;
-
+    if(_compression != 0)
+    {
+        std::cout << "Error: incorrect compression read from file! Expected uncompressed file, found" 
+            << (unsigned)_compression << std::endl;
+        in_stream.close();
+        exit(EXIT_FAILURE);
+    }
     _size_image = read_uint32(in_stream);
-    std::cout << "size_image = " << _size_image << std::endl;
-
     _x_pixels_per_meter = read_int32(in_stream);
-    std::cout << "x_pixels_per_meter = " << _x_pixels_per_meter << std::endl;
-
     _y_pixels_per_meter = read_int32(in_stream);
-    std::cout << "y_pixels_per_meter = " << _y_pixels_per_meter << std::endl;
-
     _colors_used = read_uint32(in_stream);
-    std::cout << "colors_used = " << _colors_used << std::endl;
-
     _colors_important = read_uint32(in_stream);
-    std::cout << "colors_important = " << _colors_important << std::endl;
 }
 
 void BmpImage::read_bmp_pixels(std::ifstream& in_stream)
 {
     pixels.resize(_height, std::vector<Pixel>(_width, Pixel(0,0,0,0)));
-    // TODO: point stream to part of file where image starts
+    // TODO: point stream to _offset_data where image starts
     for(unsigned i = 0; i < (unsigned)_height; i++)
     {
         for(unsigned j = 0; j < (unsigned)_width; j++)
@@ -112,29 +104,24 @@ void BmpImage::read_bmp_pixels(std::ifstream& in_stream)
 
 void BmpImage::read_bmp_file()
 {
-    std::cout << "Reading bmp file..." << std::endl;
-    // try
+    std::cout << "Reading bmp file... " << in_file_path << std::endl;
     std::ifstream in_stream(in_file_path, std::ios::in | std::ios::binary);
     if (!in_stream)
     {
-        std::cout << "Error!" << std::endl;
+        std::cout << "Error reading bmp file!" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     std::cout << "Reading file header..." << std::endl;
     read_bmp_file_header(in_stream);
+
     std::cout << "Reading info header..." << std::endl;
     read_bmp_info_header(in_stream);
+
     std::cout << "Reading pixels..." << std::endl;
     read_bmp_pixels(in_stream);
+
     std::cout << "... done!" << std::endl;
-
-    // catch
-    _offset_data = sizeof(_file_type) + sizeof(_file_size) + sizeof(_reserved1) + sizeof(_reserved2) +
-        sizeof(_offset_data) + sizeof(_size) + sizeof(_width) + sizeof(_height) + sizeof(_planes) +
-        sizeof(_bit_count) + sizeof(_compression) + sizeof(_size_image) + sizeof(_x_pixels_per_meter) +
-        sizeof(_y_pixels_per_meter) + sizeof(_colors_used) + sizeof(_colors_important);
-
-    in_stream.close();
 }
 
 
@@ -163,10 +150,11 @@ void write_int32(std::ofstream& out_stream, int32_t i32)
 
 void BmpImage::write_bmp_file_header(std::ofstream& out_stream) const
 {
+    // TODO: adjust file size and offset for written file
     write_uint16(out_stream, _file_type);
     write_uint32(out_stream, _file_size);
-    write_uint16(out_stream, 0);
-    write_uint16(out_stream, 0);
+    write_uint16(out_stream, _reserved1);
+    write_uint16(out_stream, _reserved2);
     write_uint32(out_stream, _offset_data);
 }
 
@@ -201,32 +189,24 @@ void BmpImage::write_bmp_pixels(std::ofstream& out_stream) const
 
 void BmpImage::write_bmp_file(std::string out_file_path)
 {
+    std::cout << "Writing output to bmp file " << out_file_path << std::endl;
     std::ofstream out_stream(out_file_path, std::ios::out | std::ios::binary);
     if (!out_stream)
     {
-        std::cout << "Error!" << std::endl;
-    }
-    write_bmp_file_header(out_stream);
-    write_bmp_info_header(out_stream);
-    write_bmp_pixels(out_stream);
-}
-
-void BmpImage::write_small_bmp_file(std::string out_file_path)
-{
-    std::ofstream out_stream(out_file_path, std::ios::out | std::ios::binary);
-    if (!out_stream)
-    {
-        std::cout << "Error!" << std::endl;
+        std::cout << "Error: unable to open file " << out_file_path << " to write!" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
-    _width = 4; // width of bitmap in pixels
-    _height = 3; // height of bitmap in pixels
-    _file_size = 54 + (_width * _height * 4); // Size of the entire file (in bytes)
+    std::cout << "Writing file header..." << std::endl;
     write_bmp_file_header(out_stream);
 
-    _size_image = (_width * _height * 4); // Size of pixel data in bytes
+    std::cout << "Writing file info..." << std::endl;
     write_bmp_info_header(out_stream);
+
+    std::cout << "Writing pixels" << std::endl;
     write_bmp_pixels(out_stream);
+
+    std::cout << "... done!" << std::endl;
 }
 
 void BmpImage::print_pixels()
@@ -242,15 +222,43 @@ void BmpImage::print_pixels()
     }
 }
 
+void BmpImage::print_file_header()
+{
+    std::cout << "file type = " << std::hex << _file_type << std::endl;
+    std::cout << "file size = " << _file_size << std::endl;
+    std::cout << "reserved1 = " << _reserved1 << std::endl;
+    std::cout << "reserved2 = " << _reserved1 << std::endl;
+    std::cout << "offset_data = " << _offset_data << std::endl;
+}
+
+void BmpImage::print_info_header()
+{
+    std::cout << "size = " << std::hex << _size << std::endl;
+    std::cout << "width = " << _width << std::endl;
+    std::cout << "height = " << _height << std::endl;
+    std::cout << "planes = " << _planes << std::endl;
+    std::cout << "bit_count = " << _bit_count << std::endl;
+    std::cout << "compression = " << _compression << std::endl;
+    std::cout << "size_image = " << _size_image << std::endl;
+    std::cout << "x_pixels_per_meter = " << _x_pixels_per_meter << std::endl;
+    std::cout << "y_pixels_per_meter = " << _y_pixels_per_meter << std::endl;
+    std::cout << "colors_used = " << _colors_used << std::endl;
+    std::cout << "colors_important = " << _colors_important << std::endl;
+}
+
+
+
 void BmpImage::flip_y()
 {
-    /* Flip image horizontally */
+    /* Flip image vertically */
+    std::cout << "Flipping image vertically" << std::endl;
     std::reverse(pixels.begin(), pixels.end());
 }
 
 void BmpImage::flip_x()
 {
-    /* Flip image vertically */
+    /* Flip image horizontally */
+    std::cout << "Flipping image horizontally" << std::endl;
     for(auto& row : pixels)
     {
         std::reverse(row.begin(), row.end());
@@ -259,6 +267,7 @@ void BmpImage::flip_x()
 
 void BmpImage::greyscale()
 {
+    std::cout << "Converting to greyscale" << std::endl;
     for(int i = 0; i <  std::abs(_height); i++)
     {
         for(int j = 0; j <  std::abs(_width); j++)
@@ -273,6 +282,7 @@ void BmpImage::greyscale()
 
 void BmpImage::brightness(double factor)
 {
+    std::cout << "Adjusting brightness using factor = " << factor << std::endl;
     for(int i = 0; i <  std::abs(_height); i++)
     {
         for(int j = 0; j <  std::abs(_width); j++)
@@ -286,6 +296,7 @@ void BmpImage::brightness(double factor)
 
 void BmpImage::contrast(double factor)
 {
+    std::cout << "Adjusting contrast using factor = " << factor << std::endl;
     double contrast_factor = 1.01 * (1.0 - factor) / (1.01 - factor);
     for(int i = 0; i <  std::abs(_height); i++)
     {
@@ -298,14 +309,40 @@ void BmpImage::contrast(double factor)
     }
 }
 
-void BmpImage::do_operation(const std::string& name)
+void BmpImage::do_operation(const std::string name)
 {
-    if(name.compare("flipX"))
+    if(name.compare("flipX") == 0)
     {
-        flip_x()
+        flip_x();
     }
-    else if(name.compare("flipY"))
+    else if(name.compare("flipY") == 0)
     {
-        flip_y()
-    } 
+        flip_y();
+    }
+    else if(name.compare("greyscale") == 0)
+    {
+        greyscale();
+    }
+    else
+    {
+        std::cout << "Error, unrecognised argument" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+void BmpImage::do_operation(const std::string name, const double factor)
+{
+    if(name.compare("brightness") == 0)
+    {
+        brightness(factor);
+    }
+    else if(name.compare("contrast") == 0)
+    {
+        contrast(factor);
+    }
+    else
+    {
+        std::cout << "Error, unrecognised argument" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }

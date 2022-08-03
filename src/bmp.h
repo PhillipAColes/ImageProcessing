@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
-#include <array>
 #include <vector>
 #include <algorithm>
 #include <math.h>
@@ -60,15 +59,18 @@ public:
     void write_bmp_pixels(std::ofstream& out_stream)const;
     void write_bmp_file(std::string out_file_path);
 
-    void write_small_bmp_file(std::string out_file_path);
-
     void print_pixels();
+    void print_file_header();
+    void print_info_header();
 
     void flip_x();
     void flip_y();
     void greyscale();
     void brightness(double factor);
     void contrast(double factor);
+
+    void do_operation(const std::string name);
+    void do_operation(const std::string name, const double factor);
 };
 
 uint8_t read_uint8(std::ifstream& in_stream);
